@@ -1,9 +1,6 @@
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,5 +27,24 @@ public class IO {
         JSONObject jsonMax = new JSONObject();
         jsonMax.put("maxCategory", jsonMaxInner);
         return jsonMax;
+    }
+
+    public static void saveBin(File dataFile, Map<String, Integer> mapCosts) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(dataFile))) {
+            oos.writeObject(mapCosts);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked") //убираем предупреждение, тк до этого мы записали мапу, значит ее же и считываем
+    public static Map<String, Integer> loadBin(File dataFile) {
+        Map<String, Integer> map = null;
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(dataFile))) {
+            map = (Map<String, Integer>) ois.readObject();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return map;
     }
 }

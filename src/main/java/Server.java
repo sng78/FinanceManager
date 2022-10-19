@@ -12,15 +12,20 @@ public class Server {
     @SuppressWarnings("InfiniteLoopStatement") //убираем ложноверное предупреждение
     public static void main(String[] args) {
         File tsvFile = new File("categories.tsv");
+        File dataFile = new File("data.bin");
+        Map<String, Integer> mapCosts;
 
         //считываем tsv в мапу
         Map<String, String> mapFromFile = IO.readTsv(tsvFile);
 
-        //создаем мапу из уникальных категорий
-        Set<String> valuesSet = new HashSet<>(mapFromFile.values());
-        Map<String, Integer> mapCosts = valuesSet.stream()
-                .collect(Collectors.toMap(x -> x, y -> 0));
-        mapCosts.put("другое", 0);
+        //создаем / загружаем мапу из возможных категорий
+        if (dataFile.exists()) {
+            mapCosts = IO.loadBin(dataFile);
+        } else {
+            Set<String> valuesSet = new HashSet<>(mapFromFile.values());
+            mapCosts = valuesSet.stream().collect(Collectors.toMap(x -> x, y -> 0));
+            mapCosts.put("другое", 0);
+        }
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.println("Сервер стартовал");
@@ -45,6 +50,7 @@ public class Server {
 
                     //создаем json и отправляем клиенту
                     JSONObject jsonMax = IO.makeJson(mapCosts);
+                    IO.saveBin(dataFile, mapCosts);
                     out.println(jsonMax);
                 }
             }
