@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Server {
     private static final int PORT = 8989;
@@ -13,18 +12,23 @@ public class Server {
     public static void main(String[] args) {
         File tsvFile = new File("categories.tsv");
         File dataFile = new File("data.bin");
-        Map<String, Integer> mapCosts;
+        List<String[]> listProducts = new ArrayList<>();
+        String category;
 
         //считываем tsv в мапу
         Map<String, String> mapFromFile = IO.readTsv(tsvFile);
 
-        //создаем / загружаем мапу из возможных категорий
+        //создаем сеты - для методов Max
+        Set<String> categorySet = new HashSet<>(mapFromFile.values());
+        categorySet.add("другое");
+        Set<String> dateSet = new HashSet<>();
+
+        //загружаем список купленных товаров
         if (dataFile.exists()) {
-            mapCosts = IO.loadBin(dataFile);
-        } else {
-            Set<String> valuesSet = new HashSet<>(mapFromFile.values());
-            mapCosts = valuesSet.stream().collect(Collectors.toMap(x -> x, y -> 0));
-            mapCosts.put("другое", 0);
+            listProducts = IO.loadBin(dataFile);
+            for (String[] list : listProducts) {
+                dateSet.add(list[2]);
+            }
         }
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
@@ -35,22 +39,28 @@ public class Server {
                      PrintWriter out = new PrintWriter(socket.getOutputStream())
                 ) {
                     //получаем и парсим запрос
-                    JSONObject js = new JSONObject(in.readLine());
-                    String title = (String) js.get("title");
-                    int sum = (int) js.get("sum");
+                    JSONObject json = new JSONObject(in.readLine());
+                    String title = (String) json.get("title");
+                    String date = (String) json.get("date");
+                    String sum = String.valueOf(json.get("sum"));
 
-                    //заполняем мапу категорий стоимостью
-                    if (mapFromFile.containsKey(title)) {
-                        int oldSum = mapCosts.get(mapFromFile.get(title));
-                        mapCosts.replace(mapFromFile.get(title), (oldSum + sum));
-                    } else {
-                        int oldSum = mapCosts.get("другое");
-                        mapCosts.replace("другое", (oldSum + sum));
-                    }
+                    //сопоставляем товар с категорией
+                    category = mapFromFile.getOrDefault(title, "другое");
+
+                    //Создаем и заполняем список купленных товаров и возможных дат
+                    String[] string = new String[]{title, category, date, sum};
+                    listProducts.add(string);
+                    dateSet.add(string[2]);
+
+                    //periodCategory (parameter period = 4 - год, 7 - месяц, 10 - день)
+                    Map<String, String> maxCategory = Max.category(listProducts, categorySet);
+                    Map<String, String> maxYearCategory = Max.periodCategory(listProducts, categorySet, dateSet, 4);
+                    Map<String, String> maxMonthCategory = Max.periodCategory(listProducts, categorySet, dateSet, 7);
+                    Map<String, String> maxDayCategory = Max.periodCategory(listProducts, categorySet, dateSet, 10);
 
                     //создаем json и отправляем клиенту
-                    JSONObject jsonMax = IO.makeJson(mapCosts);
-                    IO.saveBin(dataFile, mapCosts);
+                    JSONObject jsonMax = IO.makeJson(maxCategory, maxYearCategory, maxMonthCategory, maxDayCategory);
+                    IO.saveBin(dataFile, listProducts);
                     out.println(jsonMax);
                 }
             }
