@@ -37,6 +37,7 @@ public class IO {
 
         JSONObject jsoMaxDayCat = new JSONObject();
         jsoMaxDayCat.put("category", maxDayCategory.get("category"));
+        jsoMaxDayCat.put("category", maxDayCategory.get("category"));
         jsoMaxDayCat.put("sum", Integer.parseInt(maxDayCategory.get("sum")));
 
         JSONObject jsoResult = new JSONObject();

@@ -5,7 +5,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 
-public class Server {
+public class Main {
     private static final int PORT = 8989;
 
     @SuppressWarnings("InfiniteLoopStatement") //убираем ложноверное предупреждение
